@@ -14,13 +14,28 @@ def load_geojson():
 
 geojson_data = load_geojson()
 
-# 3. 데이터 로드 및 전처리
+# 3. 데이터 로드 및 전처리 (매핑 로직 복구)
 @st.cache_data
 def load_data():
-    df = pd.read_csv('Final_Risk_Deploy.csv', encoding='utf-8-sig')
+    # 리스크 데이터 로드
+    df_risk = pd.read_csv('Final_Risk_Deploy.csv', encoding='utf-8-sig')
     
-    # [수정] 현재 파일에 '시도'가 없으므로 SGG_Code를 지역명 대용으로 사용합니다.
-    df['지역명'] = "지역코드: " + df['SGG_Code'].astype(str)
+    # 지역명 매핑용 데이터 로드 (엑셀 엔진 openpyxl 지정으로 안전하게 로드)
+    try:
+        # 시도, 시군구, SGG_Code가 들어있는 파일을 읽습니다.
+        df_vulner = pd.read_excel('취약성+지역코드.xlsx', engine='openpyxl')
+    except Exception:
+        # 만약 엑셀 로드에 실패하면 CSV 백업본이라도 시도합니다.
+        df_vulner = pd.read_csv('취약성+지역코드.xlsx - Vulnerability_Final_Result.csv', encoding='utf-8-sig')
+    
+    # SGG_Code 기준으로 시도/시군구 정보 가져오기
+    mapping = df_vulner[['SGG_Code', '시도', '시군구']].drop_duplicates()
+    
+    # 두 데이터 합치기
+    df = pd.merge(df_risk, mapping, on='SGG_Code', how='left')
+    
+    # 한글 지역명 만들기
+    df['지역명'] = df['시도'] + " " + df['시군구']
     
     df['Date'] = pd.to_datetime(df['Date'])
     df['SGG_Code'] = df['SGG_Code'].astype(str)
@@ -28,7 +43,8 @@ def load_data():
 
 df = load_data()
 
-# 4. 사이드바 인터페이스
+# --- 이후 사이드바 및 지도 출력 로직은 이전과 동일합니다 ---
+
 st.sidebar.header("🔍 분석 설정")
 available_years = sorted(df['Date'].dt.year.unique())
 target_year = st.sidebar.selectbox("📅 분석 연도 선택", options=available_years)
@@ -36,7 +52,6 @@ target_year = st.sidebar.selectbox("📅 분석 연도 선택", options=availabl
 df_year = df[df['Date'].dt.year == target_year].copy()
 df_year['Date_str'] = df_year['Date'].dt.strftime('%Y-%m-%d')
 
-# 5. 메인 화면 구성
 st.title(f"🌍 {target_year}년 하절기 복합 재난 분석 대시보드")
 
 tab1, tab2, tab3 = st.tabs(["🔥 Hazard (위험)", "🏥 Vulnerability (취약성)", "⚠️ Final Risk (리스크)"])
@@ -49,10 +64,8 @@ maps_config = [
 
 for m in maps_config:
     with m['tab']:
-        # 데이터가 비어있지 않은지 확인 후 처리
         if not df_year.empty:
             max_row = df_year.loc[df_year[m['col']].idxmax()]
-            
             c1, c2, c3 = st.columns(3)
             c1.metric("최고 위험 지역", max_row['지역명'])
             c2.metric("최고 위험 발생일", max_row['Date_str'])
@@ -70,9 +83,6 @@ for m in maps_config:
                 color_continuous_scale=m['color'],
                 range_color=[0, df[m['col']].max()]
             )
-            
             fig.update_geos(fitbounds="locations", visible=False)
             fig.update_layout(height=800, margin={"r":0,"t":40,"l":0,"b":0})
             st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.warning("선택한 연도의 데이터가 없습니다.")
