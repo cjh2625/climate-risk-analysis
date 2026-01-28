@@ -9,13 +9,7 @@ geojson_data = requests.get(geojson_url).json()
 
 # 2. 데이터 로드 및 매핑 처리
 # 엑셀 파일 로딩 (사용자 파일명 반영)
-df_risk = pd.read_csv('Final_Risk_Deploy.csv', encoding='utf-8-sig')
-try:
-    # 엑셀 파일 직접 로드 (시도, 시군구, SGG_Code 매핑용)
-    df_vulner = pd.read_excel('취약성+지역코드.xlsx')
-except:
-    # 엑셀 로드 실패 시 CSV 백업으로 로드
-    df_vulner = pd.read_csv('취약성+지역코드.xlsx - Vulnerability_Final_Result.csv', encoding='utf-8-sig')
+df = pd.read_csv('Final_Risk_Deploy.csv', encoding='utf-8-sig')
 
 # 매핑 데이터 정제
 mapping_info = df_vulner[['SGG_Code', '시도', '시군구']].drop_duplicates()
