@@ -9,18 +9,15 @@ geojson_data = requests.get(geojson_url).json()
 
 # 2. 데이터 로드 및 매핑 처리
 # 엑셀 파일 로딩 (사용자 파일명 반영)
+# 12줄부터 시작 (데이터 로드 및 전처리)
 df = pd.read_csv('Final_Risk_Deploy.csv', encoding='utf-8-sig')
-
-# 매핑 데이터 정제
-mapping_info = df_vulner[['SGG_Code', '시도', '시군구']].drop_duplicates()
-df = pd.merge(df_risk, mapping_info, on='SGG_Code', how='left')
-df['지역명'] = df['시도'] + " " + df['시군구']
 
 # 날짜 및 데이터 타입 전처리
 df['Date'] = pd.to_datetime(df['Date'])
 df = df[df['Date'].dt.month.isin([7, 8, 9])] # 하절기 필터링
 df['SGG_Code'] = df['SGG_Code'].astype(str)
 
+# 3. 사이드바 및 레이아웃 설정
 # 3. 사이드바 및 레이아웃 설정
 st.set_page_config(layout="wide") # 화면 넓게 쓰기
 st.title("🌍 하절기 복합 재난 분석 시스템")
