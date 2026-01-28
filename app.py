@@ -9,7 +9,7 @@ geojson_data = requests.get(geojson_url).json()
 
 # 2. 데이터 로드 및 매핑 처리
 # 엑셀 파일 로딩 (사용자 파일명 반영)
-df_risk = pd.read_csv('Final_Risk_2027_2050.csv', encoding='utf-8-sig')
+df_risk = pd.read_csv('Final_Risk_Deploy.csv', encoding='utf-8-sig')
 try:
     # 엑셀 파일 직접 로드 (시도, 시군구, SGG_Code 매핑용)
     df_vulner = pd.read_excel('취약성+지역코드.xlsx')
@@ -79,6 +79,6 @@ for m in maps_info:
             margin={"r":0,"t":50,"l":0,"b":0},
             coloraxis_colorbar=dict(title="지수 값", thickness=20)
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
 
 st.info(f"💡 {target_year}년 데이터 분석 결과입니다. 하단의 재생 버튼을 누르면 하절기 일자별 변화를 볼 수 있습니다.")
